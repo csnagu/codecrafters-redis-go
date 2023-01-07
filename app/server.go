@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 )
 
 func main() {
@@ -30,8 +31,24 @@ func main() {
 
 func pong(conn net.Conn) {
 	defer conn.Close()
-	_, err := io.WriteString(conn, "+PONG\r\n")
-	if err != nil {
-		return
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	request := make([]byte, 128)
+
+	for {
+		read_len, err := conn.Read(request)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if read_len == 0 {
+			break // connection already closed by client
+		} else {
+			_, err := io.WriteString(conn, "+PONG\r\n")
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
 	}
 }
