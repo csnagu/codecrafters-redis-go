@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -35,20 +36,50 @@ func pong(conn net.Conn) {
 	request := make([]byte, 128)
 
 	for {
-		read_len, err := conn.Read(request)
+		readLen, err := conn.Read(request)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		if read_len == 0 {
+		if readLen == 0 {
 			break // connection already closed by client
-		} else {
-			_, err := io.WriteString(conn, "+PONG\r\n")
+		}
+
+		reqCommand, _ := parseRequest(request)
+
+		if reqCommand == "ping" {
+			responseBody := "PONG"
+			_, err := io.WriteString(conn, "+"+responseBody+"\r\n")
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 		}
+
 	}
+}
+
+func parseRequest(request []byte) (reqCommand string, reqArgs []string) {
+	req := string(request)
+	// ex.) *2\r\n$4\r\necho\r\n$5\r\nworld\r\n
+
+	rep := regexp.MustCompile(`\r\n`)
+	resultArr := rep.Split(req, -1)
+	for i := 0; i < len(resultArr); i++ {
+		symbol := resultArr[i][:1]
+
+		if symbol == "*" || symbol == "$" {
+			continue
+		}
+		if reqCommand == "" {
+			reqCommand = resultArr[i]
+		} else {
+			reqArgs = append(reqArgs, resultArr[i])
+		}
+	}
+	// remove EOF
+	reqArgs = reqArgs[:len(reqArgs)-1]
+
+	return reqCommand, reqArgs
 }
