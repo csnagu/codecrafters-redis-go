@@ -38,25 +38,35 @@ func pong(conn net.Conn) {
 	for {
 		readLen, err := conn.Read(request)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("read error:", err)
 			return
 		}
-
 		if readLen == 0 {
 			break // connection already closed by client
 		}
 
-		reqCommand, _ := parseRequest(request)
+		reqCommand, reqArgs := parseRequest(request)
 
 		if reqCommand == "ping" {
 			responseBody := "PONG"
 			_, err := io.WriteString(conn, "+"+responseBody+"\r\n")
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("io write error:", err)
 				return
 			}
 		}
 
+		if reqCommand == "echo" {
+			responseBody := ""
+			for i := 0; i < len(reqArgs); i++ {
+				responseBody += reqArgs[i]
+			}
+			_, err = io.WriteString(conn, "+"+responseBody+"\r\n")
+			if err != nil {
+				fmt.Println("io write error:", err)
+				return
+			}
+		}
 	}
 }
 
