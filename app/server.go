@@ -43,7 +43,7 @@ func pong(conn net.Conn, db map[string]string) {
 		readLen, err := conn.Read(request)
 		if err != nil {
 			fmt.Println("read error:", err)
-			return
+			break
 		}
 		if readLen == 0 {
 			break // connection already closed by client
@@ -56,7 +56,7 @@ func pong(conn net.Conn, db map[string]string) {
 			_, err := io.WriteString(conn, "+"+responseBody+"\r\n")
 			if err != nil {
 				fmt.Println("io write error:", err)
-				return
+				break
 			}
 		}
 
@@ -68,7 +68,7 @@ func pong(conn net.Conn, db map[string]string) {
 			_, err = io.WriteString(conn, "+"+responseBody+"\r\n")
 			if err != nil {
 				fmt.Println("io write error:", err)
-				return
+				break
 			}
 		}
 
