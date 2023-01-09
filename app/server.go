@@ -19,6 +19,10 @@ func main() {
 		os.Exit(1)
 	}
 	defer l.Close()
+
+	// as in-memory db
+	var db = map[string]string{}
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -26,11 +30,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		go pong(conn)
+		go pong(conn, db)
 	}
 }
 
-func pong(conn net.Conn) {
+func pong(conn net.Conn, db map[string]string) {
 	defer conn.Close()
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	request := make([]byte, 128)
@@ -65,6 +69,29 @@ func pong(conn net.Conn) {
 			if err != nil {
 				fmt.Println("io write error:", err)
 				return
+			}
+		}
+
+		if reqCommand == "set" {
+			key, val := reqArgs[0], reqArgs[1]
+			db[key] = val
+			_, err = io.WriteString(conn, "+OK\r\n")
+			if err != nil {
+				fmt.Println("io write error:", err)
+				break
+			}
+		}
+		if reqCommand == "get" {
+			fmt.Println("get")
+			key := reqArgs[0]
+			responseBody := db[key]
+			if db[key] == "" {
+				responseBody = "nil"
+			}
+			_, err = io.WriteString(conn, "+"+responseBody+"\r\n")
+			if err != nil {
+				fmt.Println("io write error:", err)
+				break
 			}
 		}
 	}
