@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -80,15 +81,26 @@ func pong(conn net.Conn, db map[string]string) {
 				fmt.Println("io write error:", err)
 				break
 			}
+			if len(reqArgs) > 2 {
+				option := reqArgs[2]
+				if option == "px" {
+					ms, _ := strconv.Atoi(reqArgs[3])
+					expiry := time.Duration(ms)
+					time.AfterFunc(expiry*time.Millisecond, func() {
+						db[key] = "-1"
+					})
+				}
+			}
 		}
 		if reqCommand == "get" {
-			fmt.Println("get")
 			key := reqArgs[0]
 			responseBody := db[key]
-			if db[key] == "" {
-				responseBody = "nil"
+			if responseBody != "-1" {
+				responseBody = "+" + responseBody + "\r\n"
+			} else {
+				responseBody = "*-1\r\n"
 			}
-			_, err = io.WriteString(conn, "+"+responseBody+"\r\n")
+			_, err = io.WriteString(conn, responseBody)
 			if err != nil {
 				fmt.Println("io write error:", err)
 				break
