@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"regexp"
@@ -42,6 +41,7 @@ func pong(conn net.Conn, db map[string]string) {
 
 	for {
 		readLen, err := conn.Read(request)
+
 		if err != nil {
 			fmt.Println("read error:", err)
 			break
@@ -54,11 +54,7 @@ func pong(conn net.Conn, db map[string]string) {
 
 		if reqCommand == "ping" {
 			responseBody := "PONG"
-			_, err := io.WriteString(conn, "+"+responseBody+"\r\n")
-			if err != nil {
-				fmt.Println("io write error:", err)
-				break
-			}
+			conn.Write([]byte("+" + responseBody + "\r\n"))
 		}
 
 		if reqCommand == "echo" {
@@ -66,21 +62,13 @@ func pong(conn net.Conn, db map[string]string) {
 			for i := 0; i < len(reqArgs); i++ {
 				responseBody += reqArgs[i]
 			}
-			_, err = io.WriteString(conn, "+"+responseBody+"\r\n")
-			if err != nil {
-				fmt.Println("io write error:", err)
-				break
-			}
+			conn.Write([]byte("+" + responseBody + "\r\n"))
 		}
 
 		if reqCommand == "set" {
 			key, val := reqArgs[0], reqArgs[1]
 			db[key] = val
-			_, err = io.WriteString(conn, "+OK\r\n")
-			if err != nil {
-				fmt.Println("io write error:", err)
-				break
-			}
+			conn.Write([]byte("+OK\r\n"))
 			if len(reqArgs) > 2 {
 				option := reqArgs[2]
 				if option == "px" {
@@ -100,11 +88,7 @@ func pong(conn net.Conn, db map[string]string) {
 			} else {
 				responseBody = "*-1\r\n"
 			}
-			_, err = io.WriteString(conn, responseBody)
-			if err != nil {
-				fmt.Println("io write error:", err)
-				break
-			}
+			conn.Write([]byte(responseBody))
 		}
 	}
 }
